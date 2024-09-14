@@ -22,7 +22,7 @@ db.serialize(() => {
 // API endpoint to validate a license key
 app.post('/validate', (req, res) => {
   const { licenseKey } = req.body;
-  
+
   if (!licenseKey) {
     return res.status(400).json({ error: 'License key is required' });
   }
@@ -35,7 +35,15 @@ app.post('/validate', (req, res) => {
     }
 
     if (row) {
-      return res.json({ valid: true });
+      // If the license key is valid, invalidate it for future use
+      db.run('UPDATE keys SET is_valid = 0 WHERE id = ?', [row.id], (err) => {
+        if (err) {
+          console.error('Error updating license key status:', err);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        return res.json({ valid: true });
+      });
     } else {
       return res.json({ valid: false });
     }
